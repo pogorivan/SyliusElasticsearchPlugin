@@ -12,7 +12,6 @@ declare(strict_types=1);
 
 namespace BitBag\SyliusElasticsearchPlugin\PropertyBuilder;
 
-use BitBag\SyliusElasticsearchPlugin\PropertyBuilder\Mapper\ProductTaxonsMapperInterface;
 use FOS\ElasticaBundle\Event\TransformEvent;
 use Sylius\Component\Attribute\Model\AttributeInterface;
 use Sylius\Component\Core\Model\ProductInterface;
@@ -25,11 +24,6 @@ final class AttributeTaxonsBuilder extends AbstractBuilder
      * @var ProductAttributeValueRepositoryInterface
      */
     private $productAttributeValueRepository;
-
-    /**
-     * @var ProductTaxonsMapperInterface
-     */
-    private $productTaxonsMapper;
 
     /**
      * @var string
@@ -48,20 +42,17 @@ final class AttributeTaxonsBuilder extends AbstractBuilder
 
     /**
      * @param ProductAttributeValueRepositoryInterface $productAttributeValueRepository
-     * @param ProductTaxonsMapperInterface $productTaxonsMapper
      * @param string $attributeProperty
      * @param string $taxonsProperty
      * @param array $excludedAttributes
      */
     public function __construct(
         ProductAttributeValueRepositoryInterface $productAttributeValueRepository,
-        ProductTaxonsMapperInterface $productTaxonsMapper,
         string $attributeProperty,
         string $taxonsProperty,
         array $excludedAttributes = []
     ) {
         $this->productAttributeValueRepository = $productAttributeValueRepository;
-        $this->productTaxonsMapper = $productTaxonsMapper;
         $this->attributeProperty = $attributeProperty;
         $this->taxonsProperty = $taxonsProperty;
         $this->excludedAttributes = $excludedAttributes;
@@ -90,9 +81,13 @@ final class AttributeTaxonsBuilder extends AbstractBuilder
             $product = $attributeValue->getProduct();
 
             if ($documentAttribute === $attributeValue->getAttribute() && $product->isEnabled()) {
-                $taxons = $this->productTaxonsMapper->mapToUniqueCodes($product);
+                foreach ($product->getTaxons() as $taxon) {
+                    $taxons[] = $taxon->getCode();
+                }
             }
         }
+
+        $taxons = array_values(array_unique($taxons));
 
         $document->set($this->taxonsProperty, $taxons);
     }
